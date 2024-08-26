@@ -26,32 +26,20 @@ class BaseQuant(ABC):
         """
         
     @abstractclassmethod    
-    def get_quantized(self, model: nn.Module) -> pl.LightningModule:
+    def quantize(self, model: pl.LightningModule) -> pl.LightningModule:
         """
         Base method to get quantization-ready version
         of your model.
         
 
         Args:
-            model (nn.Module): Target model that need to be quantized
+            model (pl.LightningModule): Target model that need to be quantized
 
         Returns:
             pl.LightningModule: Quantization-ready version of the target model 
                                 wrapped in lightning module.
         """
-    @abstractclassmethod
-    def get_wrapped(self, model: nn.Module) -> pl.LightningModule:
-        """
-        Base method to get bare wrapped version of the target method
-        without any quantization.
-        
 
-        Args:
-            model (nn.Module): Target model that need to be wrapped
-
-        Returns:
-            pl.LightningModule: Target model wrapped in lightning module.
-        """
 
     @abstractclassmethod
     def _quantize_module(self, module: nn.Module) -> nn.Module:

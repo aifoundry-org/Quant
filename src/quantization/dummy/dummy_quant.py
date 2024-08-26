@@ -12,11 +12,8 @@ class DummyQuant(BaseQuant):
             nn.Linear: QuantizedLinear
         }
 
-    def get_quantized(self, model):
-        pass
-
-    def get_wrapped(self, model):
-        pass
+    def quantize(self, model):
+        return model # no layer replacements for now
 
     def _quantize_module(self, module):
         if isinstance(module, nn.Conv2d):
