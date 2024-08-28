@@ -1,7 +1,6 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-import torch
 from torch import nn, optim
 from torchvision.models import resnet18
 
@@ -18,5 +17,6 @@ composer.optimizer = optim.Adam
 composer.model_type = MType.VISION_CLS
 
 model = composer.compose()
+qmodel = quantizer.quantize(model)
 pass
 

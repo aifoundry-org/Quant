@@ -3,7 +3,10 @@ from torch import nn
 from src.quantization.abc.abc_quant import BaseQuant
 from src.quantization.dummy.dummy_conv2d import QuantizedConv2d
 from src.quantization.dummy.dummy_linear import QuantizedLinear
+from src.aux.qutils import attrsetter, is_biased
 
+from copy import deepcopy
+from operator import attrgetter, itemgetter
 
 class DummyQuant(BaseQuant):
     def module_mappings(self):
@@ -12,20 +15,38 @@ class DummyQuant(BaseQuant):
             nn.Linear: QuantizedLinear
         }
 
-    def quantize(self, model):
-        return model # no layer replacements for now
+    def quantize(self, model, in_place=False):
+        if in_place:
+            qmodel = deepcopy(model)
+        else:
+            qmodel = model
+            
+        qlayers = self._get_layers(model)
+        
+        for layer in qlayers.keys():
+            module = attrgetter(layer)(qmodel)
+            qmodule = self._quantize_module(module)
+            attrsetter(layer)(qmodel, qmodule)
+        
+        return qmodel
 
     def _quantize_module(self, module):
         if isinstance(module, nn.Conv2d):
-            return self._quantize_module_conv2d(module)
+            qmodule = self._quantize_module_conv2d(module)
         elif isinstance(module, nn.Linear):
-            return self._quantize_module_linear(module)
+            qmodule = self._quantize_module_linear(module)
         else:
             raise NotImplementedError(
                 f"Unknown type for quantization {type(module)}")
+        
+        qmodule.weight.data = module.weight.data
+        if is_biased(module):
+            qmodule.bias.data = module.bias.data
+        
+        return qmodule
 
     def _quantize_module_conv2d(self, module: nn.Conv2d):
-        qmodule = QuantizedConv2d(
+        return QuantizedConv2d(
             module.in_channels,
             module.out_channels,
             module.kernel_size,
@@ -33,15 +54,13 @@ class DummyQuant(BaseQuant):
             module.padding,
             module.dilation,
             module.groups,
-            module.bias,
+            is_biased(module),
             module.padding_mode
         )
-        return qmodule
 
     def _quantize_module_linear(self, module: nn.Linear):
-        qmodule = QuantizedLinear(
+        return QuantizedLinear(
             module.in_features,
             module.out_features,
-            module.bias
+            is_biased(module)
         )
-        return qmodule
