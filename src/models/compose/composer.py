@@ -10,12 +10,13 @@ from src.aux.types import MType
 from src.models.compose.vision.vision_cls_module import LVisionCls
 
 class ModelComposer():
-    def __init__(self, config: Dict | None) -> None:
+    def __init__(self, config=None) -> None:
         self.config = config
         self.model_type: MType
         self.model: nn.Module
         self.criterion: _Loss
         self.optimizer: Optimizer
+        self.lr: float = 1e-4
     
     def compose(self) -> pl.LightningModule:
         if self.config:
@@ -27,8 +28,10 @@ class ModelComposer():
             assert(self.criterion)
             assert(self.optimizer)
         
+        self.optimizer = self.optimizer(self.model.parameters(), self.lr)
+        
         if self.model_type == MType.VISION_CLS:
-            module = LVisionCls(self.__dict__())
+            module = LVisionCls(self.__dict__)
         elif self.model_type == MType.VISION_DNS:
             raise NotImplementedError()
         elif self.model_type == MType.VISION_SR:
