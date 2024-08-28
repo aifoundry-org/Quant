@@ -21,7 +21,6 @@ class BaseQuant(ABC):
                     nn.Conv2d: QuantizedConv2d,
                     nn.Linear: QuantizedLinear
                 }
-
         Returns:
             Dict: The dictionary of layers mapping.
         """

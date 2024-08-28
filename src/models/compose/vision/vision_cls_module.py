@@ -1,3 +1,4 @@
+import torch
 import torchmetrics
 import lightning.pytorch as pl
 
@@ -10,15 +11,18 @@ class LVisionCls(pl.LightningModule):
         self.criterion = setup["criterion"]
         self.optimizer = setup["optimizer"]
         self.metrics = []
+        self.acc_metric = torchmetrics.Accuracy(
+            task="multiclass",
+            num_classes=10, # TODO dynamically assign
+            top_k=1)
         
         self._init_metrics()
     
     def _init_metrics(self):
-        self.metrics.append((torchmetrics.Accuracy(
-            task="multiclass",
-            num_classes=10, # TODO dynamically assign
-            top_k=1
-        )))
+        self.metrics.append(["Accuracy_top1", self.acc_metric])
+     
+    def configure_optimizers(self):
+        return self.optimizer
         
     
     def forward(self, inputs):
@@ -35,9 +39,9 @@ class LVisionCls(pl.LightningModule):
         inputs, target = val_batch
         outputs = self.forward(inputs)
         val_loss = self.criterion(outputs, target)
-        for metric in self.metrics:
-            metric_value = metric(outputs, target)
-            self.log(f"{metric.__name__()}", metric_value, prog_bar=False)
+        for name, metric in self.metrics:
+            metric_value = metric(torch.argmax(outputs, 1), target)
+            self.log(f"{name}", metric_value, prog_bar=False)
         
         self.log("val_loss", val_loss, prog_bar=False)
 

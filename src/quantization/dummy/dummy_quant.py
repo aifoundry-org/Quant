@@ -6,7 +6,7 @@ from src.quantization.dummy.dummy_linear import QuantizedLinear
 from src.aux.qutils import attrsetter, is_biased
 
 from copy import deepcopy
-from operator import attrgetter, itemgetter
+from operator import attrgetter
 
 class DummyQuant(BaseQuant):
     def module_mappings(self):
@@ -40,6 +40,7 @@ class DummyQuant(BaseQuant):
                 f"Unknown type for quantization {type(module)}")
         
         qmodule.weight.data = module.weight.data
+        
         if is_biased(module):
             qmodule.bias.data = module.bias.data
         
