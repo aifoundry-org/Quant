@@ -3,14 +3,15 @@ import re
 
 from torch import nn
 from typing import Dict, List, Type
-from abc import ABC, abstractclassmethod
+from abc import ABC, abstractmethod
 
 
 class BaseQuant(ABC):
     def __init__(self, config: Dict):
         self.config = config
-
-    @abstractclassmethod
+        
+    @classmethod
+    @abstractmethod
     def module_mappings(self) -> Dict:
         """
         This method should define the mappeing between source
@@ -24,8 +25,8 @@ class BaseQuant(ABC):
         Returns:
             Dict: The dictionary of layers mapping.
         """
-
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def quantize(self, model: pl.LightningModule) -> pl.LightningModule:
         """
         Base method to get quantization-ready version
@@ -39,8 +40,8 @@ class BaseQuant(ABC):
             pl.LightningModule: Quantization-ready version of the target model 
                                 wrapped in lightning module.
         """
-
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def _quantize_module(self, module: nn.Module) -> nn.Module:
         """
         Base method for layer (module) quantization.
@@ -57,6 +58,28 @@ class BaseQuant(ABC):
 
         Returns:
             nn.Module: Quantized counterpart of source module (layer)
+        """
+    @classmethod
+    @abstractmethod
+    def _get_quantization_sequence(self, qmodule: nn.Module) -> nn.Module:
+        """
+        When quantizing neural network you need also quantize activations to prevent \n
+        accumulator values of exceeding target bit width (https://arxiv.org/abs/2106.08295, Figure.2)
+        
+        In general, two approaches exist for activation quantization.
+        1. Quantize layer input activations: `QuantizedActivation(INT) -> QuantizedLayer(INT)`
+        2. Quantize layer output activations: `QuantizedLayer(INT) -> QuantizedActivation(INT)`
+        
+        The idea is to replace `qmodule` with:
+            `nn.Sequential(qmodule, qact)`
+            or
+            `nn.Sequential(qact, qmodule)`    
+
+        Args:
+            qmodule (nn.Module): The source module to combine with activation quantizer
+
+        Returns:
+            nn.Module: Resulting quantization sequence
         """
 
     def _get_layers(self, model: nn.Module, exclude_layers: List[str] = []):

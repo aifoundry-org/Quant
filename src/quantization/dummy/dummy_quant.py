@@ -3,10 +3,12 @@ from torch import nn
 from src.quantization.abc.abc_quant import BaseQuant
 from src.quantization.dummy.dummy_conv2d import QuantizedConv2d
 from src.quantization.dummy.dummy_linear import QuantizedLinear
+from src.quantization.dummy.dummy_qact import QuantizedAct
 from src.aux.qutils import attrsetter, is_biased
 
 from copy import deepcopy
 from operator import attrgetter
+from collections import OrderedDict
 
 class DummyQuant(BaseQuant):
     def module_mappings(self):
@@ -44,7 +46,17 @@ class DummyQuant(BaseQuant):
         if is_biased(module):
             qmodule.bias.data = module.bias.data
         
+        qmodule = self._get_quantization_sequence(qmodule)
+        
         return qmodule
+    
+    def _get_quantization_sequence(self, qmodule):
+        sequence = nn.Sequential(OrderedDict([
+            ("activations_quantizer", QuantizedAct()),
+            ("0", qmodule)
+        ]))
+        
+        return sequence
 
     def _quantize_module_conv2d(self, module: nn.Conv2d):
         return QuantizedConv2d(

@@ -1,7 +1,6 @@
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-import torch
 from torch import nn, optim
 from torchvision.models import resnet18
 from lightning import pytorch as pl
@@ -15,10 +14,9 @@ composer = ModelComposer()
 quantizer = DummyQuant(config={})
 data = CIFAR10DataModule()
 data.batch_size_train = 2000
-trainer = pl.Trainer(max_epochs=10)
+trainer = pl.Trainer(max_epochs=25)
 
 composer.model = resnet18(num_classes=10)
-composer.model.fc
 composer.criterion = nn.CrossEntropyLoss()
 composer.optimizer = optim.Adam
 composer.model_type = MType.VISION_CLS

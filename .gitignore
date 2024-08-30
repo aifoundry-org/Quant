@@ -164,3 +164,10 @@ cython_debug/
 # Lightning
 lightning_logs/
 
+# Project
+
+data/*
+!data/.gitkeep
+
+
+
