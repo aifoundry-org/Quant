@@ -1,8 +1,6 @@
-import torch
 import lightning.pytorch as pl
 
 from torch import nn
-from typing import Dict
 from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 
