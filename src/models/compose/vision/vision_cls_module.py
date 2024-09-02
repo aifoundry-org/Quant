@@ -13,7 +13,7 @@ class LVisionCls(pl.LightningModule):
         self.metrics = []
         self.acc_metric = torchmetrics.Accuracy(
             task="multiclass",
-            num_classes=10, # TODO dynamically assign
+            num_classes=setup['config'].model.params['num_classes'],
             top_k=1)
         
         self._init_metrics()

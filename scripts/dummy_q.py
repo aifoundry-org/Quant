@@ -9,17 +9,22 @@ from src.aux.types import MType
 from src.quantization.dummy.dummy_quant import DummyQuant
 from src.models.compose.composer import ModelComposer
 from src.data import CIFAR10DataModule
+from src.config.config_loader import load_and_validate_config
 
-composer = ModelComposer()
-quantizer = DummyQuant(config={})
+config =  load_and_validate_config("config/dummy_config.yaml")
+composer = ModelComposer(config=config)
+quantizer = DummyQuant(config=config)
+
 data = CIFAR10DataModule()
-data.batch_size_train = 2000
-trainer = pl.Trainer(max_epochs=25)
+data.batch_size_train = config.data.batch_size
+data.num_workers = config.data.num_workers
 
-composer.model = resnet18(num_classes=10)
-composer.criterion = nn.CrossEntropyLoss()
-composer.optimizer = optim.Adam
-composer.model_type = MType.VISION_CLS
+trainer = pl.Trainer(max_epochs=config.training.epochs)
+
+# composer.model = resnet18(num_classes=10)
+# composer.criterion = nn.CrossEntropyLoss()
+# composer.optimizer = optim.Adam
+# composer.model_type = MType.VISION_CLS
 
 model = composer.compose()
 qmodel = quantizer.quantize(model)

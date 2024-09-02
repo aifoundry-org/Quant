@@ -1,6 +1,7 @@
 import lightning.pytorch as pl
+import src.models as compose_models
 
-from torch import nn
+from torch import nn, optim
 from torch.nn.modules.loss import _Loss
 from torch.optim.optimizer import Optimizer
 
@@ -18,8 +19,14 @@ class ModelComposer():
     
     def compose(self) -> pl.LightningModule:
         if self.config:
-            # TODO compose model from config
-            pass
+            model_config = self.config.model
+            training_config = self.config.training
+            
+            self.model_type = MType[model_config.type]
+            self.model = getattr(compose_models, model_config.name)(**model_config.params)
+            self.criterion = getattr(nn, training_config.criterion)()
+            self.optimizer = getattr(optim, training_config.optimizer)
+            self.lr = training_config.learning_rate
         else:
             assert(self.model)
             assert(self.model_type)

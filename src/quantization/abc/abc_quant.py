@@ -9,6 +9,10 @@ from abc import ABC, abstractmethod
 class BaseQuant(ABC):
     def __init__(self, config: Dict):
         self.config = config
+        self.act_bit: int
+        self.weight_bit: int
+        self.excluded: List
+        self._init_config()
         
     @classmethod
     @abstractmethod
@@ -48,8 +52,9 @@ class BaseQuant(ABC):
         Should inherit calls from different methods assigning
         types of modules and their quantizers. 
 
-        Example:
-                if isinstance(module, nn.Conv2d):
+        Usage:
+
+            if isinstance(module, nn.Conv2d):
                     return self._quantize_module_conv2d
 
 
@@ -108,5 +113,17 @@ class BaseQuant(ABC):
                 raise AttributeError(f"Layer name {layer_name} is not found in the model.")
 
         return quantizable_layers
+    
+    def _init_config(self):
+        """
+        The method is for mapping quantization config attributs into 
+        class instance values. Should be expaneded for the sake of the specific
+        quantizers.
+        """
+        if self.config:
+            quant_config = self.config.quantization
+            self.act_bit = quant_config.act_bit
+            self.weight_bit = quant_config.weight_bit
+            self.excluded_layers = quant_config.excluded_layers
     
     
