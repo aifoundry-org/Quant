@@ -83,6 +83,7 @@ class Trainer(pl.Trainer):
                 getattr(compose_callbacks, _callback)(**tconfig.callbacks[_callback].params)
                 for _callback in tconfig.callbacks
             ]
+            check_val_every_n_epoch = tconfig.val_every_n_epochs
 
         super().__init__(
             accelerator=accelerator,

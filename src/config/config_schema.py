@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.optim as optim
 import src.models as compose_models
 import src.callbacks as compose_callbacks
+import src.quantization as compose_quantization
 
 from pydantic import BaseModel, field_validator
 from typing import Literal, Dict, Optional, List
@@ -21,6 +22,7 @@ class TrainingConfig(BaseModel):
     optimizer: str
     learning_rate: float
     max_epochs: int
+    val_every_n_epochs: int
     callbacks: Optional[Dict[str, Callback]] = []
 
 
@@ -60,7 +62,14 @@ class ConfigSchema(BaseModel):
     def validate_model(cls, v):
         if not hasattr(compose_models, v.name):
             raise ValueError(
-                f"Invalid model name: {v.name}.\n Valid options are: {compose_models.__all__}."
+                f"Invalid model name: {v.name}.\nValid options are: {compose_models.__all__}."
             )
-
+        return v
+    
+    @field_validator("quantization")
+    def validate_quantizer(cls, v):
+        if not hasattr(compose_quantization, v.name):
+            raise ValueError(
+                f"Invalid quantizer name: {v.name}.\nValid options are: {compose_quantization.__all__}."
+            )
         return v

@@ -1,8 +1,7 @@
 import lightning.pytorch as pl
-import re
 
 from torch import nn
-from typing import Dict, List, Type
+from typing import Dict, List
 from abc import ABC, abstractmethod
 
 
