@@ -1,8 +1,8 @@
 from torch import nn
 
 from src.quantization.abc.abc_quant import BaseQuant
-from src.quantization.rniq.rniq_conv2d import RniqConnv2d
-from src.quantization.rniq.rniq_linear import RniqLinear
+from src.quantization.rniq.layers.rniq_conv2d import NoisyConv2d
+from src.quantization.rniq.layers.rniq_linear import NoisyLinear
 from src.aux.qutils import attrsetter, is_biased
 
 from copy import deepcopy
@@ -12,8 +12,8 @@ from collections import OrderedDict
 class RNIQQuant(BaseQuant):
     def module_mappings(self):
         return {
-            nn.Conv2d: RniqConnv2d,
-            nn.Linear: RniqLinear,
+            nn.Conv2d: NoisyConv2d,
+            nn.Linear: NoisyLinear,
         }
     
     def quantize(self, model, in_place=False):
