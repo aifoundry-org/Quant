@@ -3,6 +3,7 @@ import torch.optim as optim
 import src.models as compose_models
 import src.callbacks as compose_callbacks
 import src.quantization as compose_quantization
+from src.aux.types import QScheme
 
 from pydantic import BaseModel, field_validator
 from typing import Literal, Dict, Optional, List
@@ -30,6 +31,7 @@ class QuantizationConfig(BaseModel):
     name: str
     act_bit: int
     weight_bit: int
+    qscheme: Optional[QScheme] = QScheme.PER_TENSOR
     params: Optional[Dict] = None
     excluded_layers: Optional[List[str]] = None
 

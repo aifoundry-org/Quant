@@ -27,7 +27,7 @@ class Quantizer:
         self.zero_point = zero_point  # zero point
         self.min_val = min_val
         self.max_val = max_val
-        self.rnoise_ratio = rnoise_ratio
+        self.rnoise_ratio = torch.Tensor([rnoise_ratio])
 
     def _is_positive_scale(self):
         """
@@ -51,14 +51,14 @@ class Quantizer:
 
         zero_noise = torch.zeros_like(value)
 
-        if self.rnoise_ratio == -1.0 or not self._is_positive_scale():
+        if self.rnoise_ratio.item() == -1.0 or not self._is_positive_scale():
             # Disable all noise calculation
             qnoise = rnoise = zero_noise
-        elif self.rnoise_ratio == 0.0:
+        elif self.rnoise_ratio.item() == 0.0:
             # Disable random noise calculation
             rnoise = zero_noise
             qnoise = self._get_qnoise(value)
-        elif self.rnoise_ratio == 1.0:
+        elif self.rnoise_ratio.item() == 1.0:
             # Disable quantization noise calculation
             qnoise = zero_noise
             rnoise = self._get_rnoise(value)
@@ -98,6 +98,6 @@ class Quantizer:
         ) - value
 
     def _get_rnoise(self, value: Tensor):
-        return torch.randint(low=-1, high=0, size=value.shape, dtype=value.dtype).add(
+        return torch.randint(low=-1, high=0, size=value.shape, dtype=value.dtype, device=value.device).add(
             0.5
         )

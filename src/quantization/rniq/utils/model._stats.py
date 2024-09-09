@@ -1,5 +1,6 @@
 import torch
 
+from src.aux.types import QScheme
 from src.loggers.default_logger import logger
 
 from src.quantization.rniq.layers.rniq_conv2d import NoisyConv2d
@@ -107,10 +108,10 @@ class ModelStats:
 
 
 def get_layer_weights_bit_width(
-    layer_weights: torch.Tensor, log_s: torch.Tensor, config="per-tensor"
+    layer_weights: torch.Tensor, log_s: torch.Tensor, config=QScheme.PER_TENSOR
 ):
     log_q = torch.log2(
-        layer_weights.abs().amax((1, 2, 3) if config == "per-channel" else ())
+        layer_weights.abs().amax((1, 2, 3) if config == QScheme.PER_CHANNEL else ())
     )
     return get_activations_bit_width(log_q + 1, log_s, 0)
 
@@ -143,7 +144,7 @@ def get_weights_bit_width_mean(model: torch.nn.Module):
             else torch.cat((module.weight.detach().reshape(-1), module.bias.detach()))
         )
         layer_bw = get_layer_weights_bit_width(
-            weight, module.log_s.detach(), module.qscheme
+            weight, module.log_wght_s.detach(), module.qscheme
         )
         if not torch.isnan(layer_bw):
             bit_widths.append(layer_bw.mean())
@@ -155,4 +156,54 @@ def get_activations_bit_width(log_q, log_s, b):
     q = torch.pow(2, log_q.ravel())
     ql, qm = b - q / 2, b + q / 2
     Q = Quantizer(s, 0, ql, qm)
-    return torch.ceil(torch.log2(Q.q(qm) - Q.q(ql) + 1)).mean()
+    return torch.ceil(torch.log2(Q.quantize(qm) - Q.quantize(ql) + 1)).mean()
+
+class ModelHelper:
+    @staticmethod
+    def get_model_values(base_model, qargs):
+        log_wght_s, log_w_n_b, log_act_q, log_act_s = [], [], [], []
+
+        # Helper to handle log_s and log_w_n_b collection
+        def collect_log_weights(module):
+            if module.log_wght_s.requires_grad:
+                log_wght_s.append(module.log_wght_s.ravel() if qargs.weights_qscheme == "per-channel" else module.log_wght_s)
+                
+                if qargs.train_bias:
+                    if qargs.weights_qscheme == "per-channel":
+                        raise NotImplementedError("Per-channel with bias not implemented")
+                    else:
+                        # For per-tensor scheme with bias
+                        log_w_n_b.append(torch.log2(samax(torch.cat((module.weight.ravel(), module.bias)))))
+                else:
+                    log_w_n_b.append(torch.log2(samax(module.weight)))
+
+        # Helper to handle log_act_q and log_act_s collection
+        def collect_log_activations(module):
+            if module.log_act_s.requires_grad:
+                log_act_q.append(module.log_act_q)
+                log_act_s.append(module.log_act_s)
+
+        for name, module in base_model.named_modules():
+            if isinstance(module, (NoisyConv2d, NoisyLin)):
+                collect_log_weights(module)
+            elif isinstance(module, NoisyAct):
+                collect_log_activations(module)
+
+        # Stack or concatenate the results based on the quantization scheme
+        if qargs.weights_qscheme == "per-tensor":
+            res = (
+                torch.stack(log_act_s).ravel(),
+                torch.stack(log_act_q).ravel(),
+                torch.stack(log_wght_s).ravel(),
+                torch.stack(log_w_n_b).ravel()
+            )
+        elif qargs.weights_qscheme == "per-channel":
+            res = (
+                torch.cat(log_act_s),
+                torch.cat(log_act_q),
+                torch.cat(log_wght_s),
+                torch.cat(log_w_n_b)
+            )
+
+        return res
+

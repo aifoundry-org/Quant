@@ -1,0 +1,28 @@
+model:
+  type: VISION_CLS
+  name: resnet18
+  params:
+    num_classes: 10
+    pretrained: False
+
+training:
+  criterion: CrossEntropyLoss
+  optimizer: Adam
+  learning_rate: 0.001
+  max_epochs: 20
+  val_every_n_epochs: 10
+  callbacks:
+    ModelCheckpoint:
+      params:
+        filename: dummy_checkpoint_rsnt18
+
+data:
+  dataset_name: CIFAR10
+  batch_size: 2000
+  num_workers: 10
+
+
+quantization:
+  name: RNIQQuant
+  act_bit: 8
+  weight_bit: 8

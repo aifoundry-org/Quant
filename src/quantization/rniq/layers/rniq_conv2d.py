@@ -42,42 +42,37 @@ class NoisyConv2d(nn.Conv2d):
         self.qscheme = qscheme
 
         if self.qscheme == QScheme.PER_TENSOR:
-            self.log_s = nn.Parameter(torch.Tensor([log_s_init]), requires_grad=True)
+            self.log_wght_s = nn.Parameter(
+                torch.Tensor([log_s_init]), requires_grad=True)
         elif self.qscheme == QScheme.PER_CHANNEL:
-            self.log_s = nn.Parameter(
+            self.log_wght_s = nn.Parameter(
                 torch.empty((out_channels, 1, 1, 1)).fill_(log_s_init),
                 requires_grad=True,
             )
-        self.noise_ratio = nn.Parameter(
-            torch.Tensor([1]),
-            requires_grad=False,
-        )
-        self.Q = Quantizer(torch.exp2(self.log_s), 0, -inf, inf)
+        self.noise_ratio = torch.nn.Parameter(torch.Tensor([1]), requires_grad=False)
+        self.Q = Quantizer(torch.exp2(self.log_wght_s), 0, -inf, inf)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        s = torch.exp2(self.log_s)
+        s = torch.exp2(self.log_wght_s)
         self.Q.scale = s
 
         if self.training:
-            self.Q.rnoise_ratio = self.noise_ratio
+            self.Q.rnoise_ratio.data = self.noise_ratio
         else:
-            self.Q.rnoise_ratio = torch.Tensor([0])
+            self.Q.rnoise_ratio.data = torch.tensor(0)
 
         weight = self.Q.dequantize(self.Q.quantize(self.weight))
 
         return self._conv_forward(input, weight, self.bias)
 
     def extra_repr(self) -> str:
-        return "in_channels={}, out_channels={}, kernel_size={}, stride={}, \
-              padding={}, dilation={}, groups={}, bias={}, log_s={}, noise_ratio={}".format(
-            self.in_channels,
-            self.out_channels,
-            self.kernel_size,
-            self.stride,
-            self.padding,
-            self.dilation,
-            self.groups,
-            is_biased(self),
-            self.log_s,
-            self.noise_ratio,
+        bias = is_biased(self)
+        log_wght_s = self.log_wght_s.item()
+        noise_ratio = self.noise_ratio.item()
+        
+        return (
+            f"in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.kernel_size},\n"
+            f"stride={self.stride}, padding={self.padding}, dilation={self.dilation},\n"
+            f"groups={self.groups}, bias={bias}, log_wght_s={log_wght_s},\n"
+            f"noise_ratio={noise_ratio}"
         )
