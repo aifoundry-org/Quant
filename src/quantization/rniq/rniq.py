@@ -72,8 +72,8 @@ class Quantizer:
             rnoise = self._get_rnoise(value)
 
         noise = self.scale * (
-            self.rnoise_ratio * rnoise + (1 - self.rnoise_ratio) * qnoise
-        )
+            self.rnoise_ratio * rnoise + (1 - self.rnoise_ratio) * qnoise)
+        
 
         # if self._is_positive_scale():
         # return torch.floor(clamped_value / self.scale + 0.5)

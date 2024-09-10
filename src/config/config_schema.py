@@ -24,6 +24,7 @@ class TrainingConfig(BaseModel):
     learning_rate: float
     max_epochs: int
     val_every_n_epochs: int
+    log_every_n_steps: Optional[int] = []
     callbacks: Optional[Dict[str, Callback]] = []
 
 

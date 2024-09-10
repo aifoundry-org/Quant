@@ -1,4 +1,5 @@
 import lightning.pytorch as pl
+import torch
 
 from src.quantization.abc.abc_quant import BaseQuant
 from src.quantization.rniq.layers.rniq_conv2d import NoisyConv2d
@@ -32,6 +33,7 @@ class RNIQQuant(BaseQuant):
             *[(n, type(m)) for n, m in qmodel.named_modules()])
 
         # The part where original LModule structure gets changed
+        qmodel._noise_ratio = torch.tensor(1.)
         qmodel.qscheme = self.qscheme
         qmodel.wrapped_criterion = PotentialLoss(
             qmodel.criterion,
@@ -42,6 +44,10 @@ class RNIQQuant(BaseQuant):
             a=self.act_bit,
             w=self.weight_bit,
             scale_momentum=0.9,
+        )
+        
+        qmodel.noise_ratio = RNIQQuant.noise_ratio.__get__(
+            qmodel, type(qmodel)
         )
 
         # Important step. Replacing training and validation steps
@@ -68,6 +74,14 @@ class RNIQQuant(BaseQuant):
             attrsetter(layer)(qmodel, qmodule)
 
         return qmodel
+    
+    @staticmethod
+    def noise_ratio(self, x=None):
+        if x:
+            for module in self.modules():
+                if hasattr(module, "_noise_ratio"):
+                    module._noise_ratio.data = torch.Tensor(x)
+        return self._noise_ratio
 
     @staticmethod  # yes, it's a static method with self argument
     def noisy_step(self, x):

@@ -49,7 +49,7 @@ class NoisyConv2d(nn.Conv2d):
                 torch.empty((out_channels, 1, 1, 1)).fill_(log_s_init),
                 requires_grad=True,
             )
-        self.noise_ratio = torch.nn.Parameter(torch.Tensor([1]), requires_grad=False)
+        self._noise_ratio = torch.nn.Parameter(torch.Tensor([1]), requires_grad=False)
         self.Q = Quantizer(torch.exp2(self.log_wght_s), 0, -inf, inf)
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
@@ -57,7 +57,7 @@ class NoisyConv2d(nn.Conv2d):
         self.Q.scale = s
 
         if self.training:
-            self.Q.rnoise_ratio.data = self.noise_ratio
+            self.Q.rnoise_ratio.data = self._noise_ratio
         else:
             self.Q.rnoise_ratio.data = torch.tensor(0)
 
@@ -68,7 +68,7 @@ class NoisyConv2d(nn.Conv2d):
     def extra_repr(self) -> str:
         bias = is_biased(self)
         log_wght_s = self.log_wght_s.item()
-        noise_ratio = self.noise_ratio.item()
+        noise_ratio = self._noise_ratio.item()
         
         return (
             f"in_channels={self.in_channels}, out_channels={self.out_channels}, kernel_size={self.kernel_size},\n"

@@ -30,7 +30,7 @@ class NoisyLinear(nn.Linear):
             self.log_wght_s = nn.Parameter(
                 torch.empty((out_features, 1)).fill_(log_s_init), requires_grad=True)
 
-        self.noise_ratio = nn.Parameter(
+        self._noise_ratio = nn.Parameter(
             torch.Tensor([1,]), requires_grad=False)
         self.Q = Quantizer(torch.exp2(self.log_wght_s), 0, -inf, inf)
 
@@ -48,7 +48,7 @@ class NoisyLinear(nn.Linear):
         self.Q.scale = s
 
         if self.training:
-            self.Q.rnoise_ratio = self.noise_ratio
+            self.Q.rnoise_ratio = self._noise_ratio
         else:
             self.Q.rnoise_ratio = torch.tensor(0)
 
@@ -59,7 +59,7 @@ class NoisyLinear(nn.Linear):
     def extra_repr(self) -> str:
         bias = is_biased(self)
         log_wght_s = self.log_wght_s.item()
-        noise_ratio = self.noise_ratio.item()
+        noise_ratio = self._noise_ratio.item()
         
         return (
             f"in_features={self.in_features}, out_features={self.out_features}, bias={bias},\n"

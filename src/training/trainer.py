@@ -79,6 +79,7 @@ class Trainer(pl.Trainer):
             tconfig = config.training
 
             max_epochs = tconfig.max_epochs
+            log_every_n_steps = tconfig.log_every_n_steps
             callbacks = [
                 getattr(compose_callbacks, _callback)(**tconfig.callbacks[_callback].params)
                 for _callback in tconfig.callbacks

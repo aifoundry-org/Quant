@@ -7,13 +7,13 @@ from src.quantization.rniq.utils.enums import QMode
 
 
 class NoisyAct(nn.Module):
-    def __init__(self, init_s=-10, init_q=10, signed=True, rnoise_ratio=1) -> None:
+    def __init__(self, init_s=-10, init_q=10, signed=True, noise_ratio=1) -> None:
         super().__init__()
         self._act_b = torch.tensor([0]).float()
         self._log_act_s = torch.tensor([init_s]).float()
         self._log_act_q = torch.tensor([init_q]).float()
         self.signed = signed
-        self.rnoise_ratio = torch.tensor(rnoise_ratio)
+        self._noise_ratio = torch.tensor(noise_ratio)
         self._log_act_s = torch.tensor([init_s]).float()
         self.log_act_q = torch.nn.Parameter(self._log_act_q, requires_grad=True)
         if signed:
@@ -35,7 +35,7 @@ class NoisyAct(nn.Module):
         self.Q.scale = s
         self.Q.min_val = act_b - q_2
         self.Q.max_val = act_b + q_2
-        self.Q.rnoise_ratio = self.rnoise_ratio
+        self.Q.rnoise_ratio = self._noise_ratio
 
         # kinda obsolete when we can change noise ratio directly
         if self.mode == QMode.ROUND_VAL:
