@@ -19,7 +19,7 @@ class NoisyAct(nn.Module):
         if signed:
             self.act_b = torch.nn.Parameter(self._act_b, requires_grad=True)
         else:
-            self.act_b = torch.exp2(self._log_act_q) / 2
+            self.act_b = torch.nn.Parameter(torch.exp2(self._log_act_q) / 2, requires_grad=False)
 
         self.log_act_s = torch.nn.Parameter(self._log_act_s, requires_grad=True)
         self.mode = QMode.ROUND_VAL

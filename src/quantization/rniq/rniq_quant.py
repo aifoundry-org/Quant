@@ -6,6 +6,7 @@ from src.quantization.rniq.layers.rniq_linear import NoisyLinear
 from src.quantization.rniq.layers.rniq_act import NoisyAct
 from src.quantization.rniq.utils.model_helper import ModelHelper
 from src.quantization.rniq.rniq_loss import PotentialLoss
+from src.quantization.rniq.utils import model_stats
 from src.aux.qutils import attrsetter, is_biased
 
 from torch import nn
@@ -26,15 +27,15 @@ class RNIQQuant(BaseQuant):
             qmodel = lmodel
         else:
             qmodel = deepcopy(lmodel)
-            
-        layer_names, layer_types = zip(
-            *[(n, type(m)) for n, m in qmodel.named_modules()]) 
 
-        # The part when original LModule structure gets changed
+        layer_names, layer_types = zip(
+            *[(n, type(m)) for n, m in qmodel.named_modules()])
+
+        # The part where original LModule structure gets changed
         qmodel.qscheme = self.qscheme
         qmodel.wrapped_criterion = PotentialLoss(
             qmodel.criterion,
-            alpha=(1,1,1),
+            alpha=(1, 1, 1),
             # alpha=self.alpha,
             lmin=0,
             p=1,
@@ -53,17 +54,19 @@ class RNIQQuant(BaseQuant):
         )
 
         # Replacing layers directly
-        qlayers = self._get_layers(lmodel)
+        qlayers = self._get_layers(lmodel, exclude_layers=self.excluded_layers)
         for layer in qlayers.keys():
             module = attrgetter(layer)(lmodel)
             preceding_layer_type = layer_types[layer_names.index(layer) - 1]
             if issubclass(preceding_layer_type, nn.ReLU):
-                qmodule = self._quantize_module(module, signed_Activations=False)
+                qmodule = self._quantize_module(
+                    module, signed_Activations=False)
             else:
-                qmodule = self._quantize_module(module, signed_Activations=True)
-                
+                qmodule = self._quantize_module(
+                    module, signed_Activations=True)
+
             attrsetter(layer)(qmodel, qmodule)
-        
+
         return qmodel
 
     @staticmethod  # yes, it's a static method with self argument
@@ -77,10 +80,13 @@ class RNIQQuant(BaseQuant):
         outputs = RNIQQuant.noisy_step(self, inputs)
         loss = self.wrapped_criterion(outputs, targets)
         self.log("Train loss", loss, prog_bar=True)
-        self.log("Base train loss", self.wrapped_criterion.base_loss, prog_bar=True)
+        self.log("Base train loss",
+                 self.wrapped_criterion.base_loss, prog_bar=True)
         self.log("Wloss", self.wrapped_criterion.wloss, prog_bar=False)
         self.log("Aloss", self.wrapped_criterion.aloss, prog_bar=False)
-        self.log("Weight reg loss", self.wrapped_criterion.weight_reg_loss, prog_bar=False)
+        self.log("Weight reg loss",
+                 self.wrapped_criterion.weight_reg_loss, prog_bar=False)
+        self.log("LR", self.lr, prog_bar=True)
 
         return loss
 
@@ -93,6 +99,10 @@ class RNIQQuant(BaseQuant):
         for name, metric in self.metrics:
             metric_value = metric(outputs[0], targets)
             self.log(f"{name}", metric_value, prog_bar=False)
+
+        # Not very optimal approach. Cycling through model two times..
+        self.log("Mean weights bit width", model_stats.get_weights_bit_width_mean(self.model), prog_bar=False)
+        self.log("Mean activations bit width", model_stats.get_activations_bit_width_mean(self.model), prog_bar=False)
 
         self.log("Validation loss", val_loss, prog_bar=False)
 

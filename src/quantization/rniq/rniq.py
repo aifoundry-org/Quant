@@ -7,11 +7,11 @@ from src.quantization.rniq.utils.enums import QMode
 class Quantizer:
     def __init__(
         self,
-        scale: float,
-        zero_point: float,
-        min_val: float,
-        max_val: float,
-        rnoise_ratio: float = -1.0,
+        scale: torch.Tensor,
+        zero_point: torch.Tensor,
+        min_val: torch.Tensor,
+        max_val: torch.Tensor,
+        rnoise_ratio: torch.Tensor=torch.Tensor([-1.0,])
     ) -> None:
         """
         Main quantizer for rniq method.
@@ -51,9 +51,14 @@ class Quantizer:
 
         zero_noise = torch.zeros_like(value)
 
+        clamped_value = (
+            # torch.clamp(value / self.scale, min=self.min_val, max=self.max_val) - self.zero_point
+            torch.clamp(value, min=self.min_val, max=self.max_val)
+        )
+
         if self.rnoise_ratio.item() == -1.0 or not self._is_positive_scale():
-            # Disable all noise calculation
-            qnoise = rnoise = zero_noise
+            # No need to calculate noise at all
+            return clamped_value
         elif self.rnoise_ratio.item() == 0.0:
             # Disable random noise calculation
             rnoise = zero_noise
@@ -70,15 +75,10 @@ class Quantizer:
             self.rnoise_ratio * rnoise + (1 - self.rnoise_ratio) * qnoise
         )
 
-        clamped_value = (
-            # torch.clamp(value / self.scale, min=self.min_val, max=self.max_val) - self.zero_point
-            torch.clamp(value, min=self.min_val, max=self.max_val)
-        ) / self.scale
-
         # if self._is_positive_scale():
         # return torch.floor(clamped_value / self.scale + 0.5)
 
-        return clamped_value + noise.detach()
+        return clamped_value / self.scale + noise.detach()
 
     def dequantize(self, quantized_value):
         """
