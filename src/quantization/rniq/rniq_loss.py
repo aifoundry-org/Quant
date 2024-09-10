@@ -59,8 +59,8 @@ class PotentialLoss(nn.Module):
         out_3 = output[3]  # log_wght_s
         out_4 = output[4]  # log_w
 
-        self.main_loss = self.criterion(out_0, target)
-        loss = self.main_loss
+        self.base_loss = self.criterion(out_0, target)
+        loss = self.base_loss
 
         z = torch.tensor(0)
         x = torch.max(z, loss - self.lmin * (1 + self.eps))

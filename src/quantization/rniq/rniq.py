@@ -73,7 +73,7 @@ class Quantizer:
         clamped_value = (
             # torch.clamp(value / self.scale, min=self.min_val, max=self.max_val) - self.zero_point
             torch.clamp(value, min=self.min_val, max=self.max_val)
-        )
+        ) / self.scale
 
         # if self._is_positive_scale():
         # return torch.floor(clamped_value / self.scale + 0.5)

@@ -8,13 +8,13 @@ model:
 training:
   criterion: CrossEntropyLoss
   optimizer: Adam
-  learning_rate: 0.001
-  max_epochs: 20
+  learning_rate: 0.01
+  max_epochs: 100
   val_every_n_epochs: 10
   callbacks:
     ModelCheckpoint:
       params:
-        filename: dummy_checkpoint_rsnt18
+        filename: rniq_checkpoint_rsnt18
 
 data:
   dataset_name: CIFAR10

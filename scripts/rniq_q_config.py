@@ -20,7 +20,6 @@ data.batch_size_train = config.data.batch_size
 data.num_workers = config.data.num_workers
 
 model = composer.compose()
-qmodel = quantizer.quantize(model)
-# qmodel = model
+qmodel = quantizer.quantize(model, in_place=True)
 
 trainer.fit(qmodel, data)

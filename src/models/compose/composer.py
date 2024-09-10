@@ -33,7 +33,6 @@ class ModelComposer():
             assert(self.criterion)
             assert(self.optimizer)
         
-        self.optimizer = self.optimizer(self.model.parameters(), self.lr)
         
         if self.model_type == MType.VISION_CLS:
             module = LVisionCls(self.__dict__)

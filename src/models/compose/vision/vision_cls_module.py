@@ -17,6 +17,7 @@ class LVisionCls(pl.LightningModule):
             num_classes=setup["config"].model.params["num_classes"],
             top_k=1,
         )
+        self.lr = setup["lr"]
 
         self._init_metrics()
 
@@ -24,7 +25,7 @@ class LVisionCls(pl.LightningModule):
         self.metrics.append(["Accuracy_top1", self.acc_metric])
 
     def configure_optimizers(self):
-        return self.optimizer
+        return self.optimizer(self.parameters(), self.lr)
 
     def forward(self, inputs):
         return self.model(inputs)
@@ -41,7 +42,7 @@ class LVisionCls(pl.LightningModule):
         outputs = self.forward(inputs)
         val_loss = self.criterion(outputs, target)
         for name, metric in self.metrics:
-            metric_value = metric(torch.argmax(outputs, 1), target)
+            metric_value = metric(outputs, target)
             self.log(f"{name}", metric_value, prog_bar=False)
 
         self.log("val_loss", val_loss, prog_bar=False)

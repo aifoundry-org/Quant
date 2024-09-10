@@ -23,9 +23,9 @@ class RNIQQuant(BaseQuant):
 
     def quantize(self, lmodel: pl.LightningModule, in_place=False):
         if in_place:
-            qmodel = deepcopy(lmodel)
-        else:
             qmodel = lmodel
+        else:
+            qmodel = deepcopy(lmodel)
             
         layer_names, layer_types = zip(
             *[(n, type(m)) for n, m in qmodel.named_modules()]) 
@@ -55,7 +55,7 @@ class RNIQQuant(BaseQuant):
         # Replacing layers directly
         qlayers = self._get_layers(lmodel)
         for layer in qlayers.keys():
-            module = attrgetter(layer)(qmodel)
+            module = attrgetter(layer)(lmodel)
             preceding_layer_type = layer_types[layer_names.index(layer) - 1]
             if issubclass(preceding_layer_type, nn.ReLU):
                 qmodule = self._quantize_module(module, signed_Activations=False)
@@ -63,7 +63,7 @@ class RNIQQuant(BaseQuant):
                 qmodule = self._quantize_module(module, signed_Activations=True)
                 
             attrsetter(layer)(qmodel, qmodule)
-
+        
         return qmodel
 
     @staticmethod  # yes, it's a static method with self argument
@@ -76,17 +76,25 @@ class RNIQQuant(BaseQuant):
         inputs, targets = batch
         outputs = RNIQQuant.noisy_step(self, inputs)
         loss = self.wrapped_criterion(outputs, targets)
-        self.log("train_loss", loss, prog_bar=True)
+        self.log("Train loss", loss, prog_bar=True)
+        self.log("Base train loss", self.wrapped_criterion.base_loss, prog_bar=True)
+        self.log("Wloss", self.wrapped_criterion.wloss, prog_bar=False)
+        self.log("Aloss", self.wrapped_criterion.aloss, prog_bar=False)
+        self.log("Weight reg loss", self.wrapped_criterion.weight_reg_loss, prog_bar=False)
 
         return loss
 
     @staticmethod
     def noisy_validation_step(self, val_batch, val_index):
-        # since lightning handles state of validation mode,
-        # we can reuse noisy_training_step directry
-        val_loss = RNIQQuant.noisy_training_step(self, val_batch, val_index)
+        inputs, targets = val_batch
+        outputs = RNIQQuant.noisy_step(self, inputs)
 
-        self.log("val_loss", val_loss, prog_bar=False)
+        val_loss = self.wrapped_criterion(outputs, targets)
+        for name, metric in self.metrics:
+            metric_value = metric(outputs[0], targets)
+            self.log(f"{name}", metric_value, prog_bar=False)
+
+        self.log("Validation loss", val_loss, prog_bar=False)
 
     def _init_config(self):
         if self.config:
@@ -106,10 +114,10 @@ class RNIQQuant(BaseQuant):
                 f"Module not supported {type(module)}"
             )
 
-        qmodule.weight.data = module.weight.data
+        qmodule.weight = module.weight
 
         if is_biased(module):
-            qmodule.bias.data = module.bias.data
+            qmodule.bias = module.bias
 
         qmodule = self._get_quantization_sequence(qmodule, signed_Activations)
 
