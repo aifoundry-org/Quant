@@ -56,6 +56,10 @@ class CIFAR10DataModule(pl.LightningDataModule):
             self.cifar_train,
             batch_size=self.batch_size_train,
             num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
+            prefetch_factor=5,
+            shuffle=False
         )
 
     def val_dataloader(self):
@@ -63,6 +67,7 @@ class CIFAR10DataModule(pl.LightningDataModule):
             self.cifar_val,
             batch_size=self.batch_size_train,
             num_workers=self.num_workers,
+            persistent_workers=True
         )
 
     def test_dataloader(self):
@@ -70,6 +75,8 @@ class CIFAR10DataModule(pl.LightningDataModule):
             self.cifar_test,
             batch_size=self.batch_size_train,
             num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True
         )
 
     def predict_dataloader(self):
