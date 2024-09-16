@@ -5,10 +5,17 @@ from src.quantization.dummy.dummy_conv2d import QuantizedConv2d
 from src.quantization.dummy.dummy_linear import QuantizedLinear
 from src.quantization.dummy.dummy_qact import QuantizedAct
 from src.aux.qutils import attrsetter, is_biased
+from src.loggers.default_logger import logger
 
 from copy import deepcopy
 from operator import attrgetter
 from collections import OrderedDict
+
+
+def new_forward(self, x):
+    logger.debug("Altered forward...")
+    return self.model(x)
+    
 
 class DummyQuant(BaseQuant):
     def module_mappings(self):
@@ -22,6 +29,9 @@ class DummyQuant(BaseQuant):
             qmodel = deepcopy(model)
         else:
             qmodel = model
+        
+        # altering the forward pass
+        qmodel.forward = new_forward.__get__(qmodel, type(qmodel))
             
         qlayers = self._get_layers(model)
         
@@ -39,7 +49,7 @@ class DummyQuant(BaseQuant):
             qmodule = self._quantize_module_linear(module)
         else:
             raise NotImplementedError(
-                f"Unknown type for quantization {type(module)}")
+                f"Module not supported {type(module)}")
         
         qmodule.weight.data = module.weight.data
         

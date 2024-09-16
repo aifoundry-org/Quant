@@ -8,4 +8,8 @@ class MType(Enum):
     
     # Language-based model types
     LM = 10
+
+class QScheme(Enum):
+    PER_TENSOR = 0
+    PER_CHANNEL = 1
     

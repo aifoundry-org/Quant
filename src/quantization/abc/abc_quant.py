@@ -107,7 +107,7 @@ class BaseQuant(ABC):
         
         for layer_name in exclude_layers:
             if layer_name in quantizable_layers:
-                quantizable_layers.remove(layer_name)
+                quantizable_layers.pop(layer_name)
             else:
                 raise AttributeError(f"Layer name {layer_name} is not found in the model.")
 
