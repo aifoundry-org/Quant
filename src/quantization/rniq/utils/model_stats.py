@@ -11,7 +11,8 @@ from src.quantization.rniq.rniq import Quantizer
 
 class ModelStats:
     def __init__(self, model: torch.nn.Module):
-        self.named_params = {name: p for name, p in model.cpu().named_parameters()}
+        self.named_params = {name: p for name,
+                             p in model.cpu().named_parameters()}
         self.modules = [(name, m) for name, m in model.cpu().named_modules()]
         self.noisy_layers = [
             m for _, m in self.modules if isinstance(m, (NoisyLinear, NoisyConv2d))
@@ -51,7 +52,8 @@ class ModelStats:
             ("min", torch.min),
             ("max", torch.max),
         ]:
-            stats[stat_name] = {name: stat_func(p) for name, p in param_values.items()}
+            stats[stat_name] = {name: stat_func(
+                p) for name, p in param_values.items()}
         return stats
 
     def _compute_module_stats(self, module_condition):
@@ -92,11 +94,13 @@ class ModelStats:
                 "Model weights abs mean, std",
                 zip(weights_stats()[0], weights_stats()[1]),
             ),
-            ("Model weights abs min, max", zip(weights_stats()[2], weights_stats()[3])),
+            ("Model weights abs min, max", zip(
+                weights_stats()[2], weights_stats()[3])),
             (
                 "Model weights bit_width",
                 [
-                    (i[0], get_activations_bit_width(torch.log2(i[1]) + 1, j[1], 0))
+                    (i[0], get_activations_bit_width(
+                        torch.log2(i[1]) + 1, j[1], 0))
                     for i, j in zip(weights_stats()[3], self._get_s_weights())
                 ],
             ),
@@ -108,11 +112,11 @@ class ModelStats:
 
 
 def get_layer_weights_bit_width(
-    layer_weights: torch.Tensor, log_s: torch.Tensor, config=QScheme.PER_TENSOR
-):
-    log_q = torch.log2(
-        layer_weights.abs().amax((1, 2, 3) if config == QScheme.PER_CHANNEL else ())
-    )
+        layer_weights: torch.Tensor, log_s: torch.Tensor, config=QScheme.PER_TENSOR):
+    if config == QScheme.PER_TENSOR:
+        log_q = torch.log2(layer_weights.ravel().abs().max())
+    elif config == QScheme.PER_CHANNEL:
+        log_q = torch.log2(layer_weights.abs().amax((1, 2, 3)).reshape(log_s.shape))
     return get_activations_bit_width(log_q + 1, log_s, 0)
 
 
@@ -138,11 +142,14 @@ def get_weights_bit_width_mean(model: torch.nn.Module):
     ]
     bit_widths = []
     for module in lin_layers:
-        weight = (
-            module.weight.detach()
-            if module.bias is None
-            else torch.cat((module.weight.detach().reshape(-1), module.bias.detach()))
-        )
+        weight = module.weight.detach()
+
+        # we are not quantizing bias therefore noo need to include it
+        # weight = (
+        # module.weight.detach()
+        # if module.bias is None
+        # else torch.cat((module.weight.detach().reshape(-1), module.bias.detach()))
+        # )
         layer_bw = get_layer_weights_bit_width(
             weight, module.log_wght_s.detach(), module.qscheme
         )
@@ -157,4 +164,5 @@ def get_activations_bit_width(log_q, log_s, b):
     zero_point = torch.zeros(1).to(s.device)
     ql, qm = b - q / 2, b + q / 2
     Q = Quantizer(s, zero_point, ql, qm)
+    Q.rnoise_ratio = torch.tensor([0]).to(s.device)
     return torch.ceil(torch.log2(Q.quantize(qm) - Q.quantize(ql) + 1)).mean()
