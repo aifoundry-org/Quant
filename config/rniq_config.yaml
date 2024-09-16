@@ -8,9 +8,9 @@ model:
 training:
   criterion: CrossEntropyLoss
   optimizer: Adam
-  learning_rate: 0.01
-  max_epochs: 100
-  val_every_n_epochs: 5
+  learning_rate: 0.0001
+  max_epochs: 400
+  val_every_n_epochs: 20
   log_every_n_steps: 10
   callbacks:
     ModelCheckpoint:
@@ -25,8 +25,8 @@ training:
 
 data:
   dataset_name: CIFAR10
-  batch_size: 2000
-  num_workers: 10
+  batch_size: 8192
+  num_workers: 20
 
 
 quantization:
