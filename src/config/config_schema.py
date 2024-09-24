@@ -17,6 +17,9 @@ class ModelConfig(BaseModel):
 class Callback(BaseModel):
     params: Optional[Dict]
 
+class Logger(BaseModel):
+    params: Optional[Dict]
+
 
 class TrainingConfig(BaseModel):
     criterion: str
@@ -26,6 +29,7 @@ class TrainingConfig(BaseModel):
     val_every_n_epochs: int
     log_every_n_steps: Optional[int] = []
     callbacks: Optional[Dict[str, Callback]] = []
+    loggers: Optional[Dict[str, Logger]] = []
 
 
 class QuantizationConfig(BaseModel):

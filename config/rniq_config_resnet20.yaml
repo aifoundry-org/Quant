@@ -12,6 +12,11 @@ training:
   max_epochs: 500
   val_every_n_epochs: 2
   log_every_n_steps: 10
+  loggers:
+    WandbLogger:
+      params:
+        name: resnet20-rniq
+ 
   callbacks:
     ModelCheckpoint:
       params:
