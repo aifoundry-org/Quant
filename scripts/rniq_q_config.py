@@ -24,5 +24,4 @@ data.num_workers = config.data.num_workers
 
 model = composer.compose()
 qmodel = quantizer.quantize(model, in_place=True)
-# qmodel = model
 trainer.fit(qmodel, datamodule=data)

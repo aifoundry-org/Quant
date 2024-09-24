@@ -84,42 +84,12 @@ qmodel = quantizer.quantize(model, in_place=True)
 trainer.fit(qmodel, datamodule=data)
 ```
 
+## Getting started with PTQ
+
+Not yet implemented.
+
 ## Customization and Hackability
 
--  **Modifying Quantization Schemes**
-    1. In order to add your quantization method, you should create new folder in `src/quantization` folder named after your method.
-    2. It is convinient to inherit your quantization class from `BaseQuant` at `src/quantization/abc/abc_quant.py`
-    and redefine the abstract methods. However, it's not mandatory and `BaseQuant`
-    class may not satisfy your needs.
-    3. You can define schema for your quantization config in `src/config/config_schema.py`
-    4. After that you should be able to wrap model with your quantization approach
-    and perform training/tuning.
-
-    *You can look into implemented Dummy and RNIQ methods to understand it further.*
+refer to CONTRIBUTING.md file
 
 
-## Project structure
-
-Execute ```git ls-files | tree --fromfile -d```
-
-```bash
-Quant 
-├── config  # for training/quant config files
-├── data    # for datasets placement
-├── scripts # for scripts utilizing the main functionality
-├── src
-│   ├── aux       # for additional funcs / small utils
-│   ├── callbacks # for lightning callbacks
-│   ├── config    # for configs handlers
-│   ├── data      # for data processing
-│   │   └── vision_cls
-│   ├── models    # for models definition
-│   │   └── compose
-│   │       └── vision
-│   ├── quantization # for quantization methods definition
-│   │   ├── abc
-│   │   ├── dummy
-│   │   └── rniq
-│   └── training    # for specific training regimes
-└── tests           # for tests
-```
