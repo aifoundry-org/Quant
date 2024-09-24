@@ -90,6 +90,6 @@ Not yet implemented.
 
 ## Customization and Hackability
 
-refer to CONTRIBUTING.md file
+Please refer to [CONTRIBUTING.md](CONTRIBUTING.md)
 
 
