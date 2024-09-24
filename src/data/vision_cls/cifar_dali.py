@@ -121,6 +121,17 @@ class CIFAR10DALIDataModule(pl.LightningDataModule):
             print("Test data already prepared.")
 
     def setup(self, stage=None):
+        self.val_pipeline = create_dali_pipeline(
+                batch_size=self.batch_size,
+                num_threads=self.num_workers,
+                device_id=self.device_id,
+                data_dir=os.path.join(self.data_dir, "val"),
+                crop=(32, 32),
+                size=32,
+                is_training=False,
+            )
+        self.val_pipeline.build()
+
         if stage == "fit" or stage is None:
             self.train_pipeline = create_dali_pipeline(
                 batch_size=self.batch_size,
@@ -131,17 +142,7 @@ class CIFAR10DALIDataModule(pl.LightningDataModule):
                 size=32,
                 is_training=True,
             )
-            self.val_pipeline = create_dali_pipeline(
-                batch_size=self.batch_size,
-                num_threads=self.num_workers,
-                device_id=self.device_id,
-                data_dir=os.path.join(self.data_dir, "val"),
-                crop=(32, 32),
-                size=32,
-                is_training=False,
-            )
             self.train_pipeline.build()
-            self.val_pipeline.build()
 
         if stage == "test" or stage is None:
             self.test_pipeline = create_dali_pipeline(

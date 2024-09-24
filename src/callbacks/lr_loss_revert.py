@@ -11,11 +11,12 @@ logger = logging.getLogger("lightning.pytorch")
 
 
 class ReduceLrOnOutlier(Callback):
-    def __init__(self, reduce_scale=2) -> None:
+    def __init__(self, reduce_scale=2, lr_lim=0.005) -> None:
         self.LR_scale = reduce_scale
         self.epoch_mean_loss = []
         self.batch_loss = 0
         self.q_loss = 0
+        self.lr_lim = lr_lim
         self.model_state = None
         self.optimizer_state = None
         super().__init__()
@@ -59,7 +60,12 @@ class ReduceLrOnOutlier(Callback):
             self.change_lr(pl_module, trainer, pl_module.lr / self.LR_scale)
         else:
             self.epoch_mean_loss.append(self.batch_loss)
-            scale = 1.05 if self.q_loss > 1e-3 else 0.995
+            eta = self.q_loss * 1e-4
+            hscale = 1 + (eta * (self.lr_lim - pl_module.lr) / pl_module.lr)
+            # hscale = 1 / (eta * (self.lr_lim - pl_module.lr) / pl_module.lr)
+            scale = hscale if self.q_loss > 1e-3 else 0.995
+            # scale = 1.05 if self.q_loss > 1e-3 else 0.995
+            
 
             self.change_lr(pl_module, trainer, pl_module.lr * scale)
 
