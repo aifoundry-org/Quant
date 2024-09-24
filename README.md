@@ -40,6 +40,7 @@ Instructions to setup framework:
 from src.config.config_loader import load_and_validate_config
 
 config = load_and_validate_config("config/{PATH_TO_YOUR_CONFIG}")
+
 ```
 
 ### 2. Initialize model to quantize
@@ -92,4 +93,10 @@ Not yet implemented.
 
 Please refer to [CONTRIBUTING.md](CONTRIBUTING.md)
 
+## Performance Metrics
 
+| Model     | Dataset  | Method | QW | QA | Best Top-1 |
+|-----------|----------|--------|----|----|------------|
+| Resnet-20 | CIFAR-10 | FP     | -  | -  | 91.7%      |
+| Resnet-20 | CIFAR-10 | RNIQ   | 2  | -  | 90.5%      |
+| Resnet-20 | CIFAR-10 | [link](https://github.com/linkinpark213/quantization-networks-cifar10/tree/master)   | 2  | -  | 91.1%      |
