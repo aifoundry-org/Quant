@@ -18,11 +18,19 @@ composer = ModelComposer(config=config)
 quantizer = Quantizer(config=config)()
 trainer = Trainer(config=config)
 
-data = CIFAR10DALIDataModule()
+# data = CIFAR10DALIDataModule()
+data = CIFAR10DataModule()
 data.batch_size = config.data.batch_size
 data.num_workers = config.data.num_workers
 
 model = composer.compose()
-trainer.validate(model, datamodule=data)
 qmodel = quantizer.quantize(model, in_place=True)
+
+# Test model befor quantization
+trainer.test(qmodel, datamodule=data)
+
+# Finetune model
 trainer.fit(qmodel, datamodule=data)
+
+# Test model after quantization
+trainer.test(model, datamodule=data)
