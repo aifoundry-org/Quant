@@ -9,8 +9,11 @@ from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.trainer.connectors.accelerator_connector import _LITERAL_WARN
+from src.loggers import WandbLogger, TensorBoardLogger
 
 from src import callbacks as compose_callbacks
+from src import loggers as compose_loggers
+
 
 
 class Trainer(pl.Trainer):
@@ -84,6 +87,21 @@ class Trainer(pl.Trainer):
                 getattr(compose_callbacks, _callback)(**tconfig.callbacks[_callback].params)
                 for _callback in tconfig.callbacks
             ]
+            
+            logger = [
+                getattr(compose_loggers, _logger)(**tconfig.loggers[_logger].params)
+                for _logger in tconfig.loggers
+            ]
+            
+            if TensorBoardLogger not in logger:
+                logger.append(TensorBoardLogger(save_dir="logs"))
+            
+            
+            for _logger in logger:
+                if isinstance(_logger, WandbLogger):
+                    _logger.log_hyperparams(config.dict())
+             
+            
             check_val_every_n_epoch = tconfig.val_every_n_epochs
 
         super().__init__(
