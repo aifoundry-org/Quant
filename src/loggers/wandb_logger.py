@@ -28,6 +28,8 @@ class WandbLogger(pl_loggers.WandbLogger):
         )
         name = name + "_" + str(uuid.uuid4())[:6]
         project = "MHAQ"
+        dir = "logs"
+        save_dir = "logs"
         super().__init__(
             name,
             save_dir,

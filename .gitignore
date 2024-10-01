@@ -167,6 +167,7 @@ lightning_logs/
 # Project
 
 data/*
+logs/*
 !data/.gitkeep
 wandb
 

@@ -93,12 +93,12 @@ class RNIQQuant(BaseQuant):
         inputs, targets = batch
         outputs = RNIQQuant.noisy_step(self, inputs)
         loss = self.wrapped_criterion(outputs, targets)
-        self.log("Train loss", loss, prog_bar=True)
-        self.log("Base train loss",
+        self.log("Loss/Train loss", loss, prog_bar=True)
+        self.log("Loss/Base train loss",
                  self.wrapped_criterion.base_loss, prog_bar=True)
-        self.log("Wloss", self.wrapped_criterion.wloss, prog_bar=False)
-        self.log("Aloss", self.wrapped_criterion.aloss, prog_bar=False)
-        self.log("Weight reg loss",
+        self.log("Loss/Wloss", self.wrapped_criterion.wloss, prog_bar=False)
+        self.log("Loss/Aloss", self.wrapped_criterion.aloss, prog_bar=False)
+        self.log("Loss/Weight reg loss",
                  self.wrapped_criterion.weight_reg_loss, prog_bar=False)
         self.log("LR", self.lr, prog_bar=True)
 
@@ -112,13 +112,13 @@ class RNIQQuant(BaseQuant):
         val_loss = self.wrapped_criterion(outputs, targets)
         for name, metric in self.metrics:
             metric_value = metric(outputs[0], targets)
-            self.log(f"{name}", metric_value, prog_bar=False)
+            self.log(f"Metric/{name}", metric_value, prog_bar=False)
 
         # Not very optimal approach. Cycling through model two times..
         self.log("Mean weights bit width", model_stats.get_weights_bit_width_mean(self.model), prog_bar=False)
         self.log("Mean activations bit width", model_stats.get_activations_bit_width_mean(self.model), prog_bar=False)
 
-        self.log("Validation loss", val_loss, prog_bar=False)
+        self.log("Loss/Validation loss", val_loss, prog_bar=False)
 
     def _init_config(self):
         if self.config:

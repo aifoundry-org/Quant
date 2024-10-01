@@ -9,7 +9,7 @@ from lightning.pytorch.plugins import _PLUGIN_INPUT, Precision
 from lightning.pytorch.profilers import Profiler
 from lightning.pytorch.strategies import Strategy
 from lightning.pytorch.trainer.connectors.accelerator_connector import _LITERAL_WARN
-from src.loggers import WandbLogger
+from src.loggers import WandbLogger, TensorBoardLogger
 
 from src import callbacks as compose_callbacks
 from src import loggers as compose_loggers
@@ -93,9 +93,13 @@ class Trainer(pl.Trainer):
                 for _logger in tconfig.loggers
             ]
             
+            if TensorBoardLogger not in logger:
+                logger.append(TensorBoardLogger(save_dir="logs"))
+            
+            
             for _logger in logger:
                 if isinstance(_logger, WandbLogger):
-                    _logger.log_hyperparams(config.__dict__)
+                    _logger.log_hyperparams(config.dict())
              
             
             check_val_every_n_epoch = tconfig.val_every_n_epochs
