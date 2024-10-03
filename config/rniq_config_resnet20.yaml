@@ -30,8 +30,8 @@ training:
 
 data:
   dataset_name: CIFAR10
-  batch_size: 4000
-  num_workers: 20
+  batch_size: 1000
+  num_workers: 10
 
 
 quantization:
@@ -40,5 +40,5 @@ quantization:
   act_bit: 21
   weight_bit: 2
   excluded_layers:
-    - 'model.module.linear'
-    - 'model.module.conv1'
+    - 'module.linear'
+    - 'module.conv1'

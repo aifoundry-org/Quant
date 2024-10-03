@@ -24,19 +24,21 @@ class RNIQQuant(BaseQuant):
         }
 
     def quantize(self, lmodel: pl.LightningModule, in_place=False):
+        tmodel = deepcopy(lmodel).eval()
         if in_place:
             qmodel = lmodel
         else:
             qmodel = deepcopy(lmodel)
 
         layer_names, layer_types = zip(
-            *[(n, type(m)) for n, m in qmodel.named_modules()])
+            *[(n, type(m)) for n, m in qmodel.model.named_modules()])
 
         # The part where original LModule structure gets changed
         qmodel._noise_ratio = torch.tensor(1.)
         qmodel.qscheme = self.qscheme
+        qmodel.tmodel = tmodel
         qmodel.wrapped_criterion = PotentialLoss(
-            qmodel.criterion,
+            torch.nn.MSELoss(),
             alpha=(1, 1, 1),
             # alpha=self.alpha,
             lmin=0,
@@ -60,9 +62,9 @@ class RNIQQuant(BaseQuant):
         )
 
         # Replacing layers directly
-        qlayers = self._get_layers(lmodel, exclude_layers=self.excluded_layers)
+        qlayers = self._get_layers(lmodel.model, exclude_layers=self.excluded_layers)
         for layer in qlayers.keys():
-            module = attrgetter(layer)(lmodel)
+            module = attrgetter(layer)(lmodel.model)
             preceding_layer_type = layer_types[layer_names.index(layer) - 1]
             if issubclass(preceding_layer_type, nn.ReLU):
                 qmodule = self._quantize_module(
@@ -71,7 +73,7 @@ class RNIQQuant(BaseQuant):
                 qmodule = self._quantize_module(
                     module, signed_Activations=True)
 
-            attrsetter(layer)(qmodel, qmodule)
+            attrsetter(layer)(qmodel.model, qmodule)
 
         return qmodel
     
@@ -91,6 +93,7 @@ class RNIQQuant(BaseQuant):
     @staticmethod
     def noisy_training_step(self, batch, batch_idx):
         inputs, targets = batch
+        targets = self.tmodel(inputs)
         outputs = RNIQQuant.noisy_step(self, inputs)
         loss = self.wrapped_criterion(outputs, targets)
         self.log("Loss/Train loss", loss, prog_bar=True)
@@ -107,6 +110,7 @@ class RNIQQuant(BaseQuant):
     @staticmethod
     def noisy_validation_step(self, val_batch, val_index):
         inputs, targets = val_batch
+        targets = self.tmodel(inputs)
         outputs = RNIQQuant.noisy_step(self, inputs)
 
         val_loss = self.wrapped_criterion(outputs, targets)
