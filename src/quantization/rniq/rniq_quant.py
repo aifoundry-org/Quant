@@ -65,6 +65,9 @@ class RNIQQuant(BaseQuant):
         qmodel.validation_step = RNIQQuant.noisy_validation_step.__get__(
             qmodel, type(qmodel)
         )
+        qmodel.test_step = RNIQQuant.noisy_test_step.__get__(
+            qmodel, type(qmodel)
+        )
 
         # Replacing layers directly
         qlayers = self._get_layers(lmodel.model, exclude_layers=self.excluded_layers)
@@ -84,10 +87,10 @@ class RNIQQuant(BaseQuant):
     
     @staticmethod
     def noise_ratio(self, x=None):
-        if x:
+        if x != None:
             for module in self.modules():
                 if hasattr(module, "_noise_ratio"):
-                    module._noise_ratio.data = torch.Tensor(x)
+                    module._noise_ratio.data = torch.tensor(x)
         return self._noise_ratio
 
     @staticmethod  # yes, it's a static method with self argument
@@ -119,7 +122,9 @@ class RNIQQuant(BaseQuant):
     @staticmethod
     def noisy_validation_step(self, val_batch, val_index):
         inputs, targets = val_batch
+
         # targets = self.tmodel(inputs)
+        # self.noise_ratio(0.0)
         outputs = RNIQQuant.noisy_step(self, inputs)
 
         val_loss = self.criterion(outputs[0], targets)
@@ -133,6 +138,19 @@ class RNIQQuant(BaseQuant):
         self.log("Mean activations bit width", model_stats.get_activations_bit_width_mean(self.model), prog_bar=False)
 
         self.log("Loss/Validation loss", val_loss, prog_bar=False)
+    
+    @staticmethod
+    def noisy_test_step(self, test_batch, test_index):
+        inputs, targets = test_batch
+        # self.noise_ratio(0.0)
+        outputs = RNIQQuant.noisy_step(self, inputs)
+        
+        test_loss = self.criterion(outputs[0], targets)
+        for name, metric in self.metrics:
+            metric_value = metric(outputs[0], targets)
+            self.log(f"{name}", metric_value, prog_bar=False)
+        
+        self.log("test_loss", test_loss, prog_bar=True) 
 
     def _init_config(self):
         if self.config:
