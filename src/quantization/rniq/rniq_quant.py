@@ -1,4 +1,5 @@
 import lightning.pytorch as pl
+import torch.nn.functional as F
 import torch
 
 from src.quantization.abc.abc_quant import BaseQuant
@@ -9,6 +10,7 @@ from src.quantization.rniq.utils.model_helper import ModelHelper
 from src.quantization.rniq.rniq_loss import PotentialLoss
 from src.quantization.rniq.utils import model_stats
 from src.aux.qutils import attrsetter, is_biased
+from src.aux.loss.hellinger import HellingerLoss
 
 from torch import nn
 from copy import deepcopy
@@ -36,9 +38,12 @@ class RNIQQuant(BaseQuant):
         # The part where original LModule structure gets changed
         qmodel._noise_ratio = torch.tensor(1.)
         qmodel.qscheme = self.qscheme
+        qmodel.tmodel = tmodel.requires_grad_(False)
         qmodel.tmodel = tmodel
         qmodel.wrapped_criterion = PotentialLoss(
-            torch.nn.MSELoss(),
+            # torch.nn.MSELoss(),
+            HellingerLoss(),
+            # qmodel.criterion,
             alpha=(1, 1, 1),
             # alpha=self.alpha,
             lmin=0,
@@ -92,10 +97,14 @@ class RNIQQuant(BaseQuant):
 
     @staticmethod
     def noisy_training_step(self, batch, batch_idx):
+        self.tmodel.eval()
         inputs, targets = batch
-        targets = self.tmodel(inputs)
+        targets_ = self.tmodel(inputs)
         outputs = RNIQQuant.noisy_step(self, inputs)
-        loss = self.wrapped_criterion(outputs, targets)
+        loss = self.wrapped_criterion(outputs, targets_)
+        # loss = self.criterion(outputs, targets)
+        
+        self.log("Loss/FP loss", F.cross_entropy(targets_, targets))
         self.log("Loss/Train loss", loss, prog_bar=True)
         self.log("Loss/Base train loss",
                  self.wrapped_criterion.base_loss, prog_bar=True)
@@ -110,12 +119,14 @@ class RNIQQuant(BaseQuant):
     @staticmethod
     def noisy_validation_step(self, val_batch, val_index):
         inputs, targets = val_batch
-        targets = self.tmodel(inputs)
+        # targets = self.tmodel(inputs)
         outputs = RNIQQuant.noisy_step(self, inputs)
 
-        val_loss = self.wrapped_criterion(outputs, targets)
+        # val_loss = self.wrapped_criterion(outputs, targets)
+        val_loss = self.criterion(outputs[0], targets)
         for name, metric in self.metrics:
             metric_value = metric(outputs[0], targets)
+            # metric_value = metric(outputs, targets)
             self.log(f"Metric/{name}", metric_value, prog_bar=False)
 
         # Not very optimal approach. Cycling through model two times..
