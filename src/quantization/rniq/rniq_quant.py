@@ -122,7 +122,6 @@ class RNIQQuant(BaseQuant):
         # targets = self.tmodel(inputs)
         outputs = RNIQQuant.noisy_step(self, inputs)
 
-        # val_loss = self.wrapped_criterion(outputs, targets)
         val_loss = self.criterion(outputs[0], targets)
         for name, metric in self.metrics:
             metric_value = metric(outputs[0], targets)
